@@ -22,5 +22,48 @@
       "invalid_url": "Invalid URL",
       "unknown": "Unknown error"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "ev_charger": "EV charger",
+          "add_device": "Add controllable device",
+          "remove_device": "Remove controllable device"
+        }
+      },
+      "ev_charger": {
+        "title": "EV charger",
+        "description": "Prefix is the Charge Point ID from the OCPP integration (entities sensor.{prefix}_...).",
+        "data": {
+          "ev_enabled": "EV charger connected",
+          "ev_prefix": "OCPP prefix"
+        }
+      },
+      "add_device": {
+        "title": "Add controllable device",
+        "data": {
+          "label": "Name",
+          "device_type": "Type",
+          "switch_entity": "Switch entity",
+          "power_sensor": "Power entity (optional)",
+          "energy_sensor": "Energy entity (optional)",
+          "status_entity": "Status entity (optional)",
+          "nominal_power_w": "Nominal power (W, optional)"
+        }
+      },
+      "remove_device": {
+        "title": "Remove controllable device",
+        "data": {
+          "remove": "Select to remove"
+        }
+      }
+    },
+    "error": {
+      "prefix_required": "Prefix is required",
+      "invalid_prefix": "Invalid prefix (letters, digits, underscore only)",
+      "label_required": "Name is required",
+      "entity_required": "Select a switch entity"
+    }
   }
 }

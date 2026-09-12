@@ -22,5 +22,48 @@
       "invalid_url": "Nieprawidłowy adres URL",
       "unknown": "Nieznany błąd"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "ev_charger": "Ładowarka EV",
+          "add_device": "Dodaj sterowalny odbiornik",
+          "remove_device": "Usuń sterowalny odbiornik"
+        }
+      },
+      "ev_charger": {
+        "title": "Ładowarka EV",
+        "description": "Prefix to Charge Point ID z integracji OCPP (encje sensor.{prefix}_...).",
+        "data": {
+          "ev_enabled": "Ładowarka EV podłączona",
+          "ev_prefix": "Prefix OCPP"
+        }
+      },
+      "add_device": {
+        "title": "Dodaj sterowalny odbiornik",
+        "data": {
+          "label": "Nazwa",
+          "device_type": "Typ",
+          "switch_entity": "Encja przełącznika",
+          "power_sensor": "Encja mocy (opcjonalnie)",
+          "energy_sensor": "Encja energii (opcjonalnie)",
+          "status_entity": "Encja statusu (opcjonalnie)",
+          "nominal_power_w": "Moc nominalna (W, opcjonalnie)"
+        }
+      },
+      "remove_device": {
+        "title": "Usuń sterowalny odbiornik",
+        "data": {
+          "remove": "Wybierz do usunięcia"
+        }
+      }
+    },
+    "error": {
+      "prefix_required": "Prefix jest wymagany",
+      "invalid_prefix": "Nieprawidłowy prefix (tylko litery, cyfry, podkreślenie)",
+      "label_required": "Nazwa jest wymagana",
+      "entity_required": "Wybierz encję przełącznika"
+    }
   }
 }
