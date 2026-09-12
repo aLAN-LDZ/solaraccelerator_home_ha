@@ -12,7 +12,13 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .api import async_fetch_prices, async_fetch_profit, async_send_live_data
+from .api import (
+    async_ack_command,
+    async_execute_command,
+    async_fetch_prices,
+    async_fetch_profit,
+    async_send_live_data,
+)
 from .const import DEFAULT_LIVE_INTERVAL, LIVE_AUTH_RETRY, LIVE_DISABLED_RETRY, METRICS_FETCH_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,12 +60,19 @@ async def async_send_live_data_loop(
 
     while True:
         try:
-            status, server_interval, retry_after = await async_send_live_data(hass, coordinator_data)
+            status, server_interval, retry_after, pending_commands = await async_send_live_data(
+                hass, coordinator_data
+            )
 
             if server_interval:
                 interval = server_interval
 
-            if status in ("ok",):
+            if status == "ok":
+                # Komendy dla sterowalnych odbiorników (EV/CWU/inne) — wykonaj i ACK
+                # od razu, bez kolejki/opóźnień jak przy falowniku (zwykły switch call).
+                for cmd in pending_commands:
+                    success, error = await async_execute_command(hass, cmd)
+                    await async_ack_command(hass, coordinator_data, cmd["id"], success, error)
                 await asyncio.sleep(interval)
             elif status == "disabled":
                 await asyncio.sleep(LIVE_DISABLED_RETRY)

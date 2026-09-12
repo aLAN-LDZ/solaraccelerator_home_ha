@@ -21,6 +21,7 @@ from .const import (
     CONF_EV_ENABLED,
     CONF_EV_PREFIX,
     CONF_SERVER_URL,
+    API_COMMAND_ACK_ENDPOINT,
     API_LIVE_ENDPOINT,
     API_PRICES_ENDPOINT,
     API_PROFIT_ENDPOINT,
@@ -199,13 +200,15 @@ def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -
 async def async_send_live_data(
     hass: HomeAssistant,
     coordinator_data: dict[str, Any],
-) -> tuple[str, int | None, int | None]:
+) -> tuple[str, int | None, int | None, list[dict[str, Any]]]:
     """Wyślij szybki push stanu na endpoint ``/api/homeassistant/live``.
 
-    Zwraca ``(status, live_interval_seconds, retry_after_seconds)``, gdzie
-    ``status`` to ``ok`` / ``disabled`` / ``rate_limited`` / ``auth_error`` / ``error``.
-    Home nigdy nie wykonuje komend zwrotnych — ``pending_commands`` w
-    odpowiedzi jest ignorowane (backend go i tak nie wysyła dla tego providera).
+    Zwraca ``(status, live_interval_seconds, retry_after_seconds, pending_commands)``,
+    gdzie ``status`` to ``ok`` / ``disabled`` / ``rate_limited`` / ``auth_error`` / ``error``.
+
+    Backend zwraca w ``pending_commands`` WYŁĄCZNIE komendy dla sterowalnych
+    odbiorników tego site'a (EV/CWU/inne) — to jest jedyne, czym ta integracja
+    steruje. Sterowanie falownikiem to inna integracja, inny provider.
     """
     api_key = coordinator_data.get(CONF_API_KEY)
     server_url = coordinator_data.get(CONF_SERVER_URL)
@@ -216,7 +219,7 @@ async def async_send_live_data(
     payload, entities_count = _build_live_payload(hass, coordinator_data)
     if "entities" not in payload and "controllable_devices" not in payload:
         # Nic do wysłania (EV niewłączone i brak sterowalnych odbiorników)
-        return ("ok", None, None)
+        return ("ok", None, None, [])
 
     try:
         async with session.post(
@@ -236,11 +239,12 @@ async def async_send_live_data(
                 coordinator_data["entities_sent"] = entities_count
                 if live_interval:
                     coordinator_data["live_interval_seconds"] = live_interval
-                return ("ok", live_interval, None)
+                pending_commands = data.get("pending_commands", []) or []
+                return ("ok", live_interval, None, pending_commands)
 
             elif resp.status == 503:
                 coordinator_data["live_status"] = "disabled"
-                return ("disabled", None, None)
+                return ("disabled", None, None, [])
 
             elif resp.status == 429:
                 coordinator_data["live_status"] = "rate_limited"
@@ -253,24 +257,74 @@ async def async_send_live_data(
                         coordinator_data["live_interval_seconds"] = server_iv
                 except Exception:
                     pass
-                return ("rate_limited", live_interval, retry_after)
+                return ("rate_limited", live_interval, retry_after, [])
 
             elif resp.status == 401:
                 coordinator_data["live_status"] = "auth_error"
                 _LOGGER.error("Live push: nieprawidłowy klucz API (401)")
-                return ("auth_error", None, None)
+                return ("auth_error", None, None, [])
 
             else:
                 coordinator_data["live_status"] = "error"
                 text = await resp.text()
                 _LOGGER.error("Live push nieudany: %s - %s", resp.status, text[:100])
-                return ("error", None, None)
+                return ("error", None, None, [])
 
     except aiohttp.ClientError as e:
         coordinator_data["live_status"] = "error"
         _LOGGER.warning("Live push: błąd połączenia: %s", e)
-        return ("error", None, None)
+        return ("error", None, None, [])
     except Exception as e:
         coordinator_data["live_status"] = "error"
         _LOGGER.exception("Live push: nieoczekiwany błąd: %s", e)
-        return ("error", None, None)
+        return ("error", None, None, [])
+
+
+async def async_execute_command(hass: HomeAssistant, command: dict[str, Any]) -> tuple[bool, str | None]:
+    """Wykonaj jedną komendę switch na sterowalnym odbiorniku.
+
+    Proste ``hass.services.async_call`` — bez opóźnień/verify/retry jak przy
+    falowniku (Modbus). Switch HA jest natychmiastowy i bezstanowy z punktu
+    widzenia backendu — jedno wywołanie wystarczy, ACK niesie wynik.
+    """
+    try:
+        await hass.services.async_call(
+            command["domain"],
+            command["service"],
+            {"entity_id": command["entity_id"], **command.get("service_data", {})},
+            blocking=True,
+        )
+        return True, None
+    except Exception as e:
+        _LOGGER.error("Wykonanie komendy %s nieudane: %s", command.get("id"), e)
+        return False, str(e)[:200]
+
+
+async def async_ack_command(
+    hass: HomeAssistant,
+    coordinator_data: dict[str, Any],
+    cmd_id: str,
+    success: bool,
+    error: str | None,
+) -> None:
+    """Potwierdź serwerowi wykonanie komendy — bez ACK backend poda ją znowu."""
+    api_key = coordinator_data.get(CONF_API_KEY)
+    server_url = coordinator_data.get(CONF_SERVER_URL)
+    session = async_get_clientsession(hass)
+    endpoint = f"{server_url}{API_COMMAND_ACK_ENDPOINT.replace('{id}', cmd_id)}"
+
+    try:
+        async with session.post(
+            endpoint,
+            json={"success": success, "error": error},
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
+            if resp.status != 200:
+                text = await resp.text()
+                _LOGGER.warning("ACK dla %s nieudany: %s - %s", cmd_id, resp.status, text[:100])
+    except Exception as e:
+        _LOGGER.warning("ACK dla %s: błąd połączenia: %s", cmd_id, e)

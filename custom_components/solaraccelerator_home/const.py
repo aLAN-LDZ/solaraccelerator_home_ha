@@ -32,6 +32,7 @@ API_TEST_CONNECTION_ENDPOINT = "/api/homeassistant/test-connection"
 API_LIVE_ENDPOINT = "/api/homeassistant/live"
 API_PRICES_ENDPOINT = "/api/homeassistant/prices"
 API_PROFIT_ENDPOINT = "/api/homeassistant/profit"
+API_COMMAND_ACK_ENDPOINT = "/api/homeassistant/commands/{id}/ack"
 
 # Interwał startowy — serwer nadpisuje go w odpowiedzi na pierwszy push
 DEFAULT_LIVE_INTERVAL = 15
