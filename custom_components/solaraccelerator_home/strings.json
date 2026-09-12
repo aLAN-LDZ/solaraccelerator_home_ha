@@ -1,0 +1,26 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SolarAccelerator Home - Klucz API",
+        "description": "Wprowadź klucz API wygenerowany w panelu SolarAccelerator.\n\nTa integracja NIE steruje falownikiem — tylko odbiera ceny/zysk z SolarAcceleratora i rejestruje akcesoria (EV, sterowalne odbiorniki).",
+        "data": {
+          "api_key": "Klucz API",
+          "server_url": "Adres serwera"
+        },
+        "data_description": {
+          "api_key": "Klucz w formacie sa_haapi_...",
+          "server_url": "Domyślnie: https://solaraccelerator.cloud"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Nieprawidłowy klucz API",
+      "invalid_api_key_format": "Klucz API musi zaczynać się od 'sa_haapi_' i mieć minimum 40 znaków",
+      "cannot_connect": "Nie można połączyć się z serwerem",
+      "integration_disabled": "Integracja jest wyłączona. Włącz ją w ustawieniach SolarAccelerator.",
+      "invalid_url": "Nieprawidłowy adres URL",
+      "unknown": "Nieznany błąd"
+    }
+  }
+}

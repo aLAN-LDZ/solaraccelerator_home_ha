@@ -1,0 +1,26 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SolarAccelerator Home - API Key",
+        "description": "Enter the API key generated in the SolarAccelerator panel.\n\nThis integration does NOT control the inverter — it only receives prices/profit from SolarAccelerator and registers accessories (EV chargers, controllable loads).",
+        "data": {
+          "api_key": "API Key",
+          "server_url": "Server address"
+        },
+        "data_description": {
+          "api_key": "Key in the format sa_haapi_...",
+          "server_url": "Default: https://solaraccelerator.cloud"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Invalid API key",
+      "invalid_api_key_format": "API key must start with 'sa_haapi_' and be at least 40 characters",
+      "cannot_connect": "Could not connect to the server",
+      "integration_disabled": "Integration is disabled. Enable it in SolarAccelerator settings.",
+      "invalid_url": "Invalid URL",
+      "unknown": "Unknown error"
+    }
+  }
+}
