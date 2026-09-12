@@ -65,5 +65,37 @@
       "label_required": "Name is required",
       "entity_required": "Select a switch entity"
     }
+  },
+  "entity": {
+    "sensor": {
+      "current_buy_price": { "name": "Buy price" },
+      "min_buy_price": { "name": "Min buy price today" },
+      "max_buy_price": { "name": "Max buy price today" },
+      "average_buy_price": { "name": "Average buy price today" },
+      "current_sell_price": { "name": "Sell price" },
+      "min_sell_price": { "name": "Min sell price today" },
+      "max_sell_price": { "name": "Max sell price today" },
+      "average_sell_price": { "name": "Average sell price today" },
+      "is_cheap": { "name": "Cheap energy" },
+      "is_expensive": { "name": "Expensive energy" },
+      "price_provider": { "name": "Price provider" },
+      "daily_profit": { "name": "Daily profit" },
+      "battery_value": { "name": "Battery value" },
+      "battery_avg_price": { "name": "Battery average price" },
+      "entities_sent": { "name": "EV entities sent" },
+      "live_last_push": { "name": "Last LIVE push" },
+      "live_interval": { "name": "LIVE interval" },
+      "live_status": {
+        "name": "LIVE status",
+        "state": {
+          "live": "Active",
+          "inactive": "Inactive",
+          "disabled": "Disabled by admin",
+          "rate_limited": "Rate limited",
+          "auth_error": "Auth error",
+          "error": "Error"
+        }
+      }
+    }
   }
 }

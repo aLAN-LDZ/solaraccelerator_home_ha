@@ -1,8 +1,8 @@
 """Klient HTTP do komunikacji z backendem Solar Accelerator.
 
-Integracja Home nie ma nic wspólnego z falownikiem — wysyła tylko stan
-ładowarki EV i sterowalnych odbiorników kanałem live. Backend rozróżnia
-klienta po kluczu API (provider), nie po zawartości payloadu.
+Integracja Home nie ma nic wspólnego z falownikiem: wysyła stan ładowarki EV
+i sterowalnych odbiorników kanałem live, i pobiera metryki (ceny, zysk).
+Backend rozróżnia klienta po kluczu API (provider), nie po zawartości payloadu.
 """
 from __future__ import annotations
 
@@ -22,11 +22,103 @@ from .const import (
     CONF_EV_PREFIX,
     CONF_SERVER_URL,
     API_LIVE_ENDPOINT,
+    API_PRICES_ENDPOINT,
+    API_PROFIT_ENDPOINT,
     EV_ENTITY_KEYS,
 )
 from .helpers import convert_value
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_fetch_prices(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> bool:
+    """Pobierz aktualne ceny energii (zakup + sprzedaż) z backendu.
+
+    Wynik trafia do ``coordinator_data["prices"]``. Status 404 (serwer nie ma
+    jeszcze cen na dziś) jest tylko logowany — nie nullujemy starych wartości.
+    """
+    api_key = coordinator_data.get(CONF_API_KEY)
+    server_url = coordinator_data.get(CONF_SERVER_URL)
+    session = async_get_clientsession(hass)
+    endpoint = f"{server_url}{API_PRICES_ENDPOINT}"
+
+    try:
+        async with session.get(
+            endpoint,
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                coordinator_data["prices"] = {
+                    "current_buy_price": data.get("current_buy_price"),
+                    "min_buy_price": data.get("min_buy_price"),
+                    "max_buy_price": data.get("max_buy_price"),
+                    "average_buy_price": data.get("average_buy_price"),
+                    "current_sell_price": data.get("current_sell_price"),
+                    "min_sell_price": data.get("min_sell_price"),
+                    "max_sell_price": data.get("max_sell_price"),
+                    "average_sell_price": data.get("average_sell_price"),
+                    "currency": data.get("currency"),
+                    "unit": data.get("unit"),
+                    "current_hour": data.get("current_hour"),
+                    "is_cheap": data.get("is_cheap"),
+                    "is_expensive": data.get("is_expensive"),
+                    "provider": data.get("provider"),
+                    "updated_at": data.get("updated_at"),
+                }
+                coordinator_data["prices_last_update"] = dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
+                return True
+            elif resp.status == 404:
+                _LOGGER.warning("Brak dostępnych cen energii: %s", await resp.text())
+            else:
+                _LOGGER.error("Nie udało się pobrać cen: %s", resp.status)
+    except aiohttp.ClientError as e:
+        _LOGGER.error("Błąd połączenia podczas pobierania cen: %s", e)
+    except Exception as e:
+        _LOGGER.exception("Błąd podczas pobierania cen: %s", e)
+
+    return False
+
+
+async def async_fetch_profit(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> bool:
+    """Pobierz dzienny bilans finansowy instalacji PV z backendu.
+
+    Zapisuje do ``coordinator_data["profit"]`` — czytają sensory daily_profit,
+    battery_value, battery_avg_price.
+    """
+    api_key = coordinator_data.get(CONF_API_KEY)
+    server_url = coordinator_data.get(CONF_SERVER_URL)
+    session = async_get_clientsession(hass)
+    endpoint = f"{server_url}{API_PROFIT_ENDPOINT}"
+
+    try:
+        async with session.get(
+            endpoint,
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                coordinator_data["profit"] = {
+                    "date": data.get("date"),
+                    "daily_profit_pln": data.get("daily_profit_pln"),
+                    "battery_value_pln": data.get("battery_value_pln"),
+                    "battery_avg_price_pln": data.get("battery_avg_price_pln"),
+                    "currency": data.get("currency"),
+                }
+                coordinator_data["profit_last_update"] = dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
+                return True
+            elif resp.status == 404:
+                _LOGGER.warning("Brak danych o zysku: %s", await resp.text())
+            else:
+                _LOGGER.error("Nie udało się pobrać zysku: %s", resp.status)
+    except aiohttp.ClientError as e:
+        _LOGGER.error("Błąd połączenia podczas pobierania zysku: %s", e)
+    except Exception as e:
+        _LOGGER.exception("Błąd podczas pobierania zysku: %s", e)
+
+    return False
 
 
 def _build_ev_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> dict[str, Any]:
@@ -83,7 +175,7 @@ def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -
     (domyślne zachowanie starszego klienta), bez wpływu na status komunikacji
     falownika utrzymywany przez inną integrację na tym samym site.
     """
-    payload: dict[str, Any] = {"timestamp": dt_util.utcnow().isoformat()}
+    payload: dict[str, Any] = {"timestamp": dt_util.utcnow().isoformat(), "prefix": "home"}
     entities_count = 0
 
     ev_enabled = bool(coordinator_data.get(CONF_EV_ENABLED) and coordinator_data.get(CONF_EV_PREFIX))

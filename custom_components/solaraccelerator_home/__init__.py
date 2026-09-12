@@ -17,7 +17,6 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .coordinator import async_send_live_data_loop
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,20 +32,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_EV_PREFIX: entry.options.get(CONF_EV_PREFIX, ""),
         CONF_ENTITY_MAPPING: entry.options.get(CONF_ENTITY_MAPPING, {}),
         CONF_CONTROLLABLE_DEVICES: entry.options.get(CONF_CONTROLLABLE_DEVICES, []),
+        # Stan kanału live (EV + sterowalne odbiorniki)
         "live_status": "inactive",
         "live_last_push": None,
         "live_interval_seconds": DEFAULT_LIVE_INTERVAL,
         "entities_sent": 0,
+        # Bufor cen energii — uzupełnia async_fetch_prices, czytają sensory cen
+        "prices": {},
+        "prices_last_update": None,
+        # Bufor zysku dziennego — uzupełnia async_fetch_profit
+        "profit": {},
+        "profit_last_update": None,
     }
 
-    if PLATFORMS:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    entry.async_create_background_task(
-        hass,
-        async_send_live_data_loop(hass, entry, hass.data[DOMAIN][entry.entry_id]),
-        f"solaraccelerator_home_live_{entry.entry_id}",
-    )
+    # Pętle w tle (live push, metryki) startują w sensor.py#async_setup_entry —
+    # PLATFORMS zawiera "sensor", więc forward_entry_setups je uruchamia.
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
@@ -59,12 +60,6 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    if PLATFORMS:
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    else:
-        unload_ok = True
-
-    if unload_ok:
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id, None)
-
     return unload_ok

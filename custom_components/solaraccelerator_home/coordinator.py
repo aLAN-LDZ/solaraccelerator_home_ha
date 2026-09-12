@@ -12,10 +12,37 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .api import async_send_live_data
-from .const import DEFAULT_LIVE_INTERVAL, LIVE_AUTH_RETRY, LIVE_DISABLED_RETRY
+from .api import async_fetch_prices, async_fetch_profit, async_send_live_data
+from .const import DEFAULT_LIVE_INTERVAL, LIVE_AUTH_RETRY, LIVE_DISABLED_RETRY, METRICS_FETCH_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_fetch_metrics_loop(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator_data: dict[str, Any],
+) -> None:
+    """Pętla odświeżająca ceny i zysk co ``METRICS_FETCH_INTERVAL`` sekund.
+
+    W przeciwieństwie do kanału live (EV), metryki nie muszą być pushowane
+    przez Home — backend liczy je niezależnie od tej integracji. Wystarczy
+    je okresowo odpytać.
+    """
+    while True:
+        try:
+            await async_fetch_prices(hass, coordinator_data)
+            await async_fetch_profit(hass, coordinator_data)
+        except asyncio.CancelledError:
+            _LOGGER.debug("Pętla metryk anulowana")
+            break
+        except Exception as e:
+            _LOGGER.exception("Błąd w pętli metryk: %s", e)
+
+        try:
+            await asyncio.sleep(METRICS_FETCH_INTERVAL)
+        except asyncio.CancelledError:
+            break
 
 
 async def async_send_live_data_loop(

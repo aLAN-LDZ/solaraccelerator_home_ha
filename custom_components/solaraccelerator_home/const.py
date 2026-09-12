@@ -30,13 +30,18 @@ DEFAULT_SERVER_URL = "https://solaraccelerator.cloud"
 
 API_TEST_CONNECTION_ENDPOINT = "/api/homeassistant/test-connection"
 API_LIVE_ENDPOINT = "/api/homeassistant/live"
+API_PRICES_ENDPOINT = "/api/homeassistant/prices"
+API_PROFIT_ENDPOINT = "/api/homeassistant/profit"
 
 # Interwał startowy — serwer nadpisuje go w odpowiedzi na pierwszy push
 DEFAULT_LIVE_INTERVAL = 15
 LIVE_DISABLED_RETRY = 60
 LIVE_AUTH_RETRY = 300
 
-PLATFORMS: list[str] = []
+# Co ile sekund odświeżamy ceny i zysk (metryki nie potrzebują szybkiego pushu jak EV)
+METRICS_FETCH_INTERVAL = 3600
+
+PLATFORMS: list[str] = ["sensor"]
 
 # Encje ładowarki EV (OCPP) — klucze BEZ prefiksu ev_
 EV_ENTITIES = [

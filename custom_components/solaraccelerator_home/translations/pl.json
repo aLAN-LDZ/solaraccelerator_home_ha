@@ -65,5 +65,37 @@
       "label_required": "Nazwa jest wymagana",
       "entity_required": "Wybierz encję przełącznika"
     }
+  },
+  "entity": {
+    "sensor": {
+      "current_buy_price": { "name": "Cena zakupu energii" },
+      "min_buy_price": { "name": "Min cena zakupu dziś" },
+      "max_buy_price": { "name": "Max cena zakupu dziś" },
+      "average_buy_price": { "name": "Średnia cena zakupu dziś" },
+      "current_sell_price": { "name": "Cena sprzedaży energii" },
+      "min_sell_price": { "name": "Min cena sprzedaży dziś" },
+      "max_sell_price": { "name": "Max cena sprzedaży dziś" },
+      "average_sell_price": { "name": "Średnia cena sprzedaży dziś" },
+      "is_cheap": { "name": "Tania energia" },
+      "is_expensive": { "name": "Droga energia" },
+      "price_provider": { "name": "Dostawca cen" },
+      "daily_profit": { "name": "Dzienny zysk" },
+      "battery_value": { "name": "Wartość baterii" },
+      "battery_avg_price": { "name": "Średnia cena baterii" },
+      "entities_sent": { "name": "Wysłane encje EV" },
+      "live_last_push": { "name": "Ostatni push LIVE" },
+      "live_interval": { "name": "Interwał LIVE" },
+      "live_status": {
+        "name": "Status LIVE",
+        "state": {
+          "live": "Aktywny",
+          "inactive": "Nieaktywny",
+          "disabled": "Wyłączony przez admina",
+          "rate_limited": "Ograniczony (rate limit)",
+          "auth_error": "Błąd autoryzacji",
+          "error": "Błąd"
+        }
+      }
+    }
   }
 }
