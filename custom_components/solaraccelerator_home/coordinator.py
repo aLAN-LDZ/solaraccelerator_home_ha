@@ -29,12 +29,7 @@ async def async_fetch_metrics_loop(
     entry: ConfigEntry,
     coordinator_data: dict[str, Any],
 ) -> None:
-    """Pętla odświeżająca ceny i zysk co ``METRICS_FETCH_INTERVAL`` sekund.
-
-    W przeciwieństwie do kanału live (EV), metryki nie muszą być pushowane
-    przez Home — backend liczy je niezależnie od tej integracji. Wystarczy
-    je okresowo odpytać.
-    """
+    """Pętla odświeżająca ceny i zysk co ``METRICS_FETCH_INTERVAL`` sekund."""
     while True:
         try:
             await async_fetch_prices(hass, coordinator_data)
@@ -68,8 +63,6 @@ async def async_send_live_data_loop(
                 interval = server_interval
 
             if status == "ok":
-                # Komendy dla sterowalnych odbiorników (EV/CWU/inne) — wykonaj i ACK
-                # od razu, bez kolejki/opóźnień jak przy falowniku (zwykły switch call).
                 for cmd in pending_commands:
                     success, error = await async_execute_command(hass, cmd)
                     await async_ack_command(hass, coordinator_data, cmd["id"], success, error)

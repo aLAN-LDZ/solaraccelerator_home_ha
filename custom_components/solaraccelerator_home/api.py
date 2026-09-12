@@ -1,9 +1,4 @@
-"""Klient HTTP do komunikacji z backendem Solar Accelerator.
-
-Integracja Home nie ma nic wspólnego z falownikiem: wysyła stan ładowarki EV
-i sterowalnych odbiorników kanałem live, i pobiera metryki (ceny, zysk).
-Backend rozróżnia klienta po kluczu API (provider), nie po zawartości payloadu.
-"""
+"""Klient HTTP do komunikacji z backendem Solar Accelerator."""
 from __future__ import annotations
 
 import logging
@@ -169,13 +164,7 @@ def _build_controllable_payload(hass: HomeAssistant, coordinator_data: dict[str,
 
 
 def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """Zbuduj payload live pushu. Zwraca (payload, entities_count).
-
-    Brak sekcji ``inverter`` i pola ``inverterOnline`` — Home nigdy nie
-    raportuje falownika, więc backend traktuje to tak, jakby był online
-    (domyślne zachowanie starszego klienta), bez wpływu na status komunikacji
-    falownika utrzymywany przez inną integrację na tym samym site.
-    """
+    """Zbuduj payload live pushu. Zwraca (payload, entities_count)."""
     payload: dict[str, Any] = {"timestamp": dt_util.utcnow().isoformat(), "prefix": "home"}
     entities_count = 0
 
@@ -205,10 +194,6 @@ async def async_send_live_data(
 
     Zwraca ``(status, live_interval_seconds, retry_after_seconds, pending_commands)``,
     gdzie ``status`` to ``ok`` / ``disabled`` / ``rate_limited`` / ``auth_error`` / ``error``.
-
-    Backend zwraca w ``pending_commands`` WYŁĄCZNIE komendy dla sterowalnych
-    odbiorników tego site'a (EV/CWU/inne) — to jest jedyne, czym ta integracja
-    steruje. Sterowanie falownikiem to inna integracja, inny provider.
     """
     api_key = coordinator_data.get(CONF_API_KEY)
     server_url = coordinator_data.get(CONF_SERVER_URL)
@@ -217,9 +202,7 @@ async def async_send_live_data(
     endpoint = f"{server_url}{API_LIVE_ENDPOINT}"
 
     payload, entities_count = _build_live_payload(hass, coordinator_data)
-    if "entities" not in payload and "controllable_devices" not in payload:
-        # Nic do wysłania (EV niewłączone i brak sterowalnych odbiorników)
-        return ("ok", None, None, [])
+    # Push zawsze, nawet z pustym payloadem (heartbeat).
 
     try:
         async with session.post(
@@ -281,12 +264,7 @@ async def async_send_live_data(
 
 
 async def async_execute_command(hass: HomeAssistant, command: dict[str, Any]) -> tuple[bool, str | None]:
-    """Wykonaj jedną komendę switch na sterowalnym odbiorniku.
-
-    Proste ``hass.services.async_call`` — bez opóźnień/verify/retry jak przy
-    falowniku (Modbus). Switch HA jest natychmiastowy i bezstanowy z punktu
-    widzenia backendu — jedno wywołanie wystarczy, ACK niesie wynik.
-    """
+    """Wykonaj jedną komendę switch na sterowalnym odbiorniku."""
     try:
         await hass.services.async_call(
             command["domain"],
