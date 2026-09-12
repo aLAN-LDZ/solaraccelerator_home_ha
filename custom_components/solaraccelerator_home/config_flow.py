@@ -1,4 +1,4 @@
-"""Config flow integracji SolarAccelerator Home."""
+"""Config flow integracji Solar Accelerator Home."""
 from __future__ import annotations
 
 import asyncio
@@ -74,7 +74,7 @@ async def async_validate_api_key(
 
 
 class SolarAcceleratorHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow SolarAccelerator Home — jeden krok, brak dalszych ekranów."""
+    """Config flow Solar Accelerator Home — jeden krok, brak dalszych ekranów."""
 
     VERSION = 1
 
@@ -100,7 +100,7 @@ class SolarAcceleratorHomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if result["success"]:
                     return self.async_create_entry(
-                        title="SolarAccelerator Home",
+                        title="Solar Accelerator Home",
                         data={
                             CONF_API_KEY: api_key,
                             CONF_SERVER_URL: server_url.rstrip("/"),

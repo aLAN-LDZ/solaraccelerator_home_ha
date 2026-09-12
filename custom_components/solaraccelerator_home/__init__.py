@@ -1,4 +1,4 @@
-"""Integracja SolarAccelerator Home dla Home Assistant."""
+"""Integracja Solar Accelerator Home dla Home Assistant."""
 from __future__ import annotations
 
 import logging

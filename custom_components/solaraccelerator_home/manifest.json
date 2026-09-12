@@ -1,12 +1,12 @@
 {
   "domain": "solaraccelerator_home",
-  "name": "SolarAccelerator Home",
+  "name": "Solar Accelerator Home",
   "codeowners": ["@aLAN-LDZ"],
   "config_flow": true,
-  "documentation": "https://github.com/aLAN-LDZ/solaraccelerator_home",
+  "documentation": "https://github.com/aLAN-LDZ/solaraccelerator_home_ha",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/aLAN-LDZ/solaraccelerator_home/issues",
+  "issue_tracker": "https://github.com/aLAN-LDZ/solaraccelerator_home_ha/issues",
   "requirements": ["aiohttp>=3.8.0"],
   "version": "0.1.0"
 }

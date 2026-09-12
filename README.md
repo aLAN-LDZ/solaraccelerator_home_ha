@@ -1,4 +1,4 @@
-# SolarAccelerator Home — integracja Home Assistant
+# Solar Accelerator Home — integracja Home Assistant
 
 Zero związku z falownikiem — do tego służą `solaraccelerator_connect` (bramka
 SA Connect) i `SolarAccelerator Bridge` (falownik przez istniejące encje HA,
@@ -20,7 +20,7 @@ sobie w drogę — każda ma jedną, wąską odpowiedzialność.
 
 - Home Assistant 2024.11.0+
 - Klucz API SolarAccelerator (`sa_haapi_...`) z panelu SolarAccelerator,
-  sekcja Integracje → SolarAccelerator Home
+  sekcja Integracje → Solar Accelerator Home
 
 ## Status
 

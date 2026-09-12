@@ -1,4 +1,4 @@
-"""Stałe integracji SolarAccelerator Home."""
+"""Stałe integracji Solar Accelerator Home."""
 from __future__ import annotations
 
 DOMAIN = "solaraccelerator_home"

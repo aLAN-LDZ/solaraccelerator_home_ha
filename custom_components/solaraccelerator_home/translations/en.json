@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "SolarAccelerator Home - API Key",
+        "title": "Solar Accelerator Home - API Key",
         "description": "Enter the API key generated in the SolarAccelerator panel.\n\nThis integration does NOT control the inverter — it only receives prices/profit from SolarAccelerator and registers accessories (EV chargers, controllable loads).",
         "data": {
           "api_key": "API Key",
