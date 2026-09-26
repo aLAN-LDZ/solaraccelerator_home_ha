@@ -15,14 +15,18 @@ from .const import (
     CONF_ENTITY_MAPPING,
     CONF_EV_ENABLED,
     CONF_EV_PREFIX,
+    CONF_HEAT_PUMPS,
     CONF_SERVER_URL,
     API_COMMAND_ACK_ENDPOINT,
     API_LIVE_ENDPOINT,
     API_PRICES_ENDPOINT,
     API_PROFIT_ENDPOINT,
     EV_ENTITY_KEYS,
+    HEAT_PUMP_ROLES,
+    ROLE_BOOL,
+    ROLE_NUMBER,
 )
-from .helpers import convert_value
+from .helpers import convert_value, read_bool, read_number, read_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -163,6 +167,38 @@ def _build_controllable_payload(hass: HomeAssistant, coordinator_data: dict[str,
     return out
 
 
+def _read_role(hass: HomeAssistant, role: str, entities: Any) -> Any:
+    """Wartość jednej roli pompy. Rola wielo-encyjna (licznik/moc 1–3 faz) = suma;
+    brak odczytu którejkolwiek fazy = None (częściowa suma udawałaby mniejszy pobór)."""
+    kind, multi, unit, _section = HEAT_PUMP_ROLES[role]
+    ids = entities if isinstance(entities, list) else [entities]
+    ids = [e for e in ids if e]
+    if not ids:
+        return None
+    if kind == ROLE_NUMBER:
+        values = [read_number(hass.states.get(e), unit) for e in ids]
+        if any(v is None for v in values):
+            return None
+        return round(sum(values), 4) if multi else values[0]
+    state = hass.states.get(ids[0])
+    return read_bool(state) if kind == ROLE_BOOL else read_text(state)
+
+
+def _build_heat_pumps_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Definicje pomp (rola → encja) + bieżące wartości ról."""
+    out: list[dict[str, Any]] = []
+    for hp in coordinator_data.get(CONF_HEAT_PUMPS) or []:
+        roles = {r: e for r, e in (hp.get("roles") or {}).items() if r in HEAT_PUMP_ROLES and e}
+        out.append({
+            "key": hp.get("key"),
+            "label": hp.get("label"),
+            "source": hp.get("source"),
+            "roles": roles,
+            "state": {r: _read_role(hass, r, e) for r, e in roles.items()},
+        })
+    return out
+
+
 def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> tuple[dict[str, Any], int]:
     """Zbuduj payload live pushu. Zwraca (payload, entities_count)."""
     payload: dict[str, Any] = {"timestamp": dt_util.utcnow().isoformat(), "prefix": "home"}
@@ -179,9 +215,13 @@ def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -
     if entities:
         payload["entities"] = entities
 
-    controllable = _build_controllable_payload(hass, coordinator_data)
-    if controllable:
-        payload["controllable_devices"] = controllable
+    # Listy urządzeń wysyłamy ZAWSZE, także puste — pusta lista znaczy „nie ma już
+    # żadnego urządzenia”, więc usunięcie ostatniego dociera do serwera.
+    payload["controllable_devices"] = _build_controllable_payload(hass, coordinator_data)
+
+    heat_pumps = _build_heat_pumps_payload(hass, coordinator_data)
+    payload["heat_pumps"] = heat_pumps
+    entities_count += sum(1 for hp in heat_pumps for v in hp["state"].values() if v is not None)
 
     return payload, entities_count
 

@@ -28,8 +28,10 @@
       "init": {
         "menu_options": {
           "ev_charger": "Ładowarka EV",
+          "heat_pump": "Pompa ciepła",
           "add_device": "Dodaj sterowalny odbiornik",
-          "remove_device": "Usuń sterowalny odbiornik"
+          "remove_device": "Usuń sterowalny odbiornik",
+          "remove_heat_pump": "Usuń pompę ciepła"
         }
       },
       "ev_charger": {
@@ -57,13 +59,106 @@
         "data": {
           "remove": "Wybierz do usunięcia"
         }
+      },
+      "heat_pump": {
+        "title": "Pompa ciepła",
+        "description": "Wybierz, jak wypełnić listę encji. HeishaMon (Panasonic Aquarea): podaj prefix encji — wykryjemy je same, a w następnym kroku każdą możesz poprawić. Ręcznie: wskażesz encje sam. Pompą nie sterujemy — dane służą prognozie zużycia i statystykom.",
+        "data": {
+          "label": "Nazwa",
+          "source": "Sposób",
+          "prefix": "Prefix HeishaMon"
+        },
+        "data_description": {
+          "prefix": "Domyślnie panasonic_heat_pump (encje sensor.panasonic_heat_pump_main_…). Ignorowany w trybie ręcznym."
+        }
+      },
+      "heat_pump_entities": {
+        "title": "Pompa ciepła — encje",
+        "description": "Każde pole jest opcjonalne — nie każda pompa wystawia wszystko. Pole puste = ta statystyka się nie pokaże.",
+        "sections": {
+          "measurement": {
+            "name": "Pomiar poboru",
+            "data": {
+              "meter_energy_kwh": "Licznik energii urządzenia (kWh, 1–3 fazy)",
+              "meter_power_w": "Moc urządzenia z licznika (W, 1–3 fazy)",
+              "power_w": "Pobór wg pompy (W)"
+            },
+            "description": "Najdokładniejszy jest zewnętrzny licznik całego urządzenia (np. Shelly, licznik 3-fazowy — wskaż 1–3 encje, zostaną zsumowane). Bez licznika użyjemy mocy albo poboru raportowanego przez pompę. Licznik z Supli wybierzesz w Solar Accelerator."
+          },
+          "modes": {
+            "name": "Tryby pracy (CO / CWU)",
+            "data": {
+              "co_power_w": "Pobór na CO (W)",
+              "cwu_power_w": "Pobór na CWU (W)",
+              "mode": "Tryb pracy (encja/helper: co / cwu / defrost / off)"
+            },
+            "description": "Najlepiej pobór osobno na CO i CWU. Jeśli pompa tego nie wystawia, zrób pomocnika (helper) zwracającego co / cwu / defrost / off i wskaż go jako tryb pracy."
+          },
+          "season_defrost": {
+            "name": "Sezon i odszranianie",
+            "data": {
+              "season": "Sezon / tryb pracy sterownika",
+              "defrost": "Odszranianie (defrost)"
+            },
+            "description": "Sezon: encja, z której wynika, czy grzanie CO jest włączone (np. tryb pracy Heat+DHW vs DHW)."
+          },
+          "heat": {
+            "name": "Ciepło i obieg wody",
+            "data": {
+              "co_heat_w": "Ciepło oddane do CO (W)",
+              "cwu_heat_w": "Ciepło oddane do CWU (W)",
+              "flow_lpm": "Przepływ (l/min)",
+              "supply_temp_c": "Temperatura zasilania (°C)",
+              "return_temp_c": "Temperatura powrotu (°C)"
+            },
+            "description": "Ciepło oddane pozwala liczyć COP. Przepływ i temperatury — ciepło zabrane z domu przez odszranianie."
+          },
+          "dhw": {
+            "name": "Ciepła woda (CWU)",
+            "data": {
+              "dhw_temp_c": "Temperatura zasobnika CWU (°C)",
+              "dhw_target_temp_c": "Zadana temperatura CWU (°C)",
+              "sterilization": "Sterylizacja / antylegionella"
+            }
+          },
+          "compressor": {
+            "name": "Sprężarka i grzałka",
+            "data": {
+              "compressor_hz": "Częstotliwość sprężarki (Hz)",
+              "operations_counter": "Licznik startów sprężarki",
+              "operations_hours": "Godziny pracy",
+              "heater": "Grzałka PRACUJE",
+              "outside_temp_c": "Temperatura zewnętrzna (czujnik pompy)"
+            },
+            "description": "Grzałka: encja pokazująca, że grzałka PRACUJE — nie ta, że jest dozwolona."
+          },
+          "settings": {
+            "name": "Ustawienia sterownika",
+            "data": {
+              "heating_off_outdoor_temp_c": "Próg wyłączenia grzania (°C)",
+              "heater_on_outdoor_temp_c": "Próg załączenia grzałki (°C)",
+              "curve_outside_high_c": "Krzywa: temp. zewn. wysoka (°C)",
+              "curve_outside_low_c": "Krzywa: temp. zewn. niska (°C)",
+              "curve_target_high_c": "Krzywa: zasilanie przy wysokiej (°C)",
+              "curve_target_low_c": "Krzywa: zasilanie przy niskiej (°C)"
+            },
+            "description": "Krzywa grzewcza i progi — do porównania z tym, czego nauczy się prognoza."
+          }
+        }
+      },
+      "remove_heat_pump": {
+        "title": "Usuń pompę ciepła",
+        "data": {
+          "confirm": "Tak, usuń pompę ciepła"
+        }
       }
     },
     "error": {
       "prefix_required": "Prefix jest wymagany",
       "invalid_prefix": "Nieprawidłowy prefix (tylko litery, cyfry, podkreślenie)",
       "label_required": "Nazwa jest wymagana",
-      "entity_required": "Wybierz encję przełącznika"
+      "entity_required": "Wybierz encję przełącznika",
+      "prefix_not_found": "Nie znaleziono żadnej encji z tym prefixem"
     }
   },
   "entity": {
@@ -95,6 +190,14 @@
           "auth_error": "Błąd autoryzacji",
           "error": "Błąd"
         }
+      }
+    }
+  },
+  "selector": {
+    "heat_pump_source": {
+      "options": {
+        "heishamon": "HeishaMon (Panasonic Aquarea) — wykryj po prefixie",
+        "manual": "Ręcznie — wskażę encje sam"
       }
     }
   }

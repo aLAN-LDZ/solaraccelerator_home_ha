@@ -28,8 +28,10 @@
       "init": {
         "menu_options": {
           "ev_charger": "EV charger",
+          "heat_pump": "Heat pump",
           "add_device": "Add controllable device",
-          "remove_device": "Remove controllable device"
+          "remove_device": "Remove controllable device",
+          "remove_heat_pump": "Remove heat pump"
         }
       },
       "ev_charger": {
@@ -57,13 +59,106 @@
         "data": {
           "remove": "Select to remove"
         }
+      },
+      "heat_pump": {
+        "title": "Heat pump",
+        "description": "Choose how to fill in the entities. HeishaMon (Panasonic Aquarea): enter the entity prefix — we detect them and you can adjust each in the next step. Manual: pick the entities yourself. The pump is not controlled — the data feeds the consumption forecast and statistics.",
+        "data": {
+          "label": "Name",
+          "source": "Method",
+          "prefix": "HeishaMon prefix"
+        },
+        "data_description": {
+          "prefix": "Default panasonic_heat_pump (entities sensor.panasonic_heat_pump_main_…). Ignored in manual mode."
+        }
+      },
+      "heat_pump_entities": {
+        "title": "Heat pump — entities",
+        "description": "Every field is optional — not every pump exposes everything. An empty field means that statistic will not be shown.",
+        "sections": {
+          "measurement": {
+            "name": "Consumption measurement",
+            "data": {
+              "meter_energy_kwh": "Device energy meter (kWh, 1–3 phases)",
+              "meter_power_w": "Device power from meter (W, 1–3 phases)",
+              "power_w": "Consumption reported by the pump (W)"
+            },
+            "description": "An external meter for the whole device is the most accurate (e.g. Shelly, 3-phase meter — pick 1–3 entities, they are summed). Without a meter we use power or the consumption reported by the pump."
+          },
+          "modes": {
+            "name": "Operating modes (heating / hot water)",
+            "data": {
+              "co_power_w": "Space heating consumption (W)",
+              "cwu_power_w": "Domestic hot water consumption (W)",
+              "mode": "Operating mode (entity/helper: co / cwu / defrost / off)"
+            },
+            "description": "Preferably consumption split into heating and hot water. If the pump does not expose it, create a helper returning co / cwu / defrost / off and use it as the operating mode."
+          },
+          "season_defrost": {
+            "name": "Season and defrost",
+            "data": {
+              "season": "Season / controller operating mode",
+              "defrost": "Defrost"
+            },
+            "description": "Season: an entity telling whether space heating is enabled (e.g. operating mode Heat+DHW vs DHW)."
+          },
+          "heat": {
+            "name": "Heat and water circuit",
+            "data": {
+              "co_heat_w": "Heat delivered to space heating (W)",
+              "cwu_heat_w": "Heat delivered to hot water (W)",
+              "flow_lpm": "Water flow (l/min)",
+              "supply_temp_c": "Supply temperature (°C)",
+              "return_temp_c": "Return temperature (°C)"
+            },
+            "description": "Delivered heat lets us compute COP. Flow and temperatures — heat taken from the house by defrost."
+          },
+          "dhw": {
+            "name": "Domestic hot water",
+            "data": {
+              "dhw_temp_c": "Hot water tank temperature (°C)",
+              "dhw_target_temp_c": "Hot water target temperature (°C)",
+              "sterilization": "Sterilization / anti-legionella"
+            }
+          },
+          "compressor": {
+            "name": "Compressor and backup heater",
+            "data": {
+              "compressor_hz": "Compressor frequency (Hz)",
+              "operations_counter": "Compressor start counter",
+              "operations_hours": "Operating hours",
+              "heater": "Backup heater RUNNING",
+              "outside_temp_c": "Outdoor temperature (pump sensor)"
+            },
+            "description": "Heater: an entity showing the heater is RUNNING — not that it is allowed."
+          },
+          "settings": {
+            "name": "Controller settings",
+            "data": {
+              "heating_off_outdoor_temp_c": "Heating off above outdoor temp (°C)",
+              "heater_on_outdoor_temp_c": "Backup heater on below outdoor temp (°C)",
+              "curve_outside_high_c": "Curve: outdoor high (°C)",
+              "curve_outside_low_c": "Curve: outdoor low (°C)",
+              "curve_target_high_c": "Curve: supply at high (°C)",
+              "curve_target_low_c": "Curve: supply at low (°C)"
+            },
+            "description": "Heating curve and thresholds — compared with what the forecast learns."
+          }
+        }
+      },
+      "remove_heat_pump": {
+        "title": "Remove heat pump",
+        "data": {
+          "confirm": "Yes, remove the heat pump"
+        }
       }
     },
     "error": {
       "prefix_required": "Prefix is required",
       "invalid_prefix": "Invalid prefix (letters, digits, underscore only)",
       "label_required": "Name is required",
-      "entity_required": "Select a switch entity"
+      "entity_required": "Select a switch entity",
+      "prefix_not_found": "No entities found with this prefix"
     }
   },
   "entity": {
@@ -95,6 +190,14 @@
           "auth_error": "Auth error",
           "error": "Error"
         }
+      }
+    }
+  },
+  "selector": {
+    "heat_pump_source": {
+      "options": {
+        "heishamon": "HeishaMon (Panasonic Aquarea) — detect by prefix",
+        "manual": "Manual — I will pick the entities"
       }
     }
   }

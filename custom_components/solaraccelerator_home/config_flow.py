@@ -10,7 +10,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
@@ -34,12 +34,32 @@ from .const import (
     CONF_ENTITY_MAPPING,
     CONF_EV_ENABLED,
     CONF_EV_PREFIX,
+    CONF_HEAT_PUMPS,
     CONF_SERVER_URL,
     CONTROLLABLE_DEVICE_TYPES,
     DEFAULT_SERVER_URL,
     DOMAIN,
+    HEAT_PUMP_ROLES,
+    HEAT_PUMP_SECTIONS,
+    HEAT_PUMP_SOURCE_HEISHAMON,
+    HEAT_PUMP_SOURCE_MANUAL,
+    HEISHAMON_CANDIDATES,
+    HEISHAMON_DEFAULT_PREFIX,
+    ROLE_BOOL,
+    ROLE_NUMBER,
     build_ocpp_entity_mapping,
 )
+
+# Domeny encji pokazywane w wyborze, zależnie od typu roli.
+_ROLE_DOMAINS = {
+    ROLE_NUMBER: ["sensor", "number", "input_number"],
+    ROLE_BOOL: ["binary_sensor", "switch", "input_boolean"],
+}
+_TEXT_DOMAINS = ["sensor", "select", "input_select"]
+
+# Role pomiaru całego urządzenia — preset ich NIE zna (licznik jest zewnętrzny),
+# więc przy ponownym wykrywaniu po prefixie zachowujemy to, co wybrał użytkownik.
+_MEASUREMENT_KEEP = ("meter_energy_kwh", "meter_power_w")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -161,9 +181,16 @@ class SolarAcceleratorHomeOptionsFlow(config_entries.OptionsFlow):
         self._devices: list[dict[str, Any]] = list(
             config_entry.options.get(CONF_CONTROLLABLE_DEVICES, [])
         )
+        self._heat_pumps: list[dict[str, Any]] = list(
+            config_entry.options.get(CONF_HEAT_PUMPS, [])
+        )
+        self._hp_draft: dict[str, Any] = {}
+        self._hp_roles: dict[str, Any] = {}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        menu_options = ["ev_charger", "add_device"]
+        menu_options = ["ev_charger", "heat_pump", "add_device"]
+        if self._heat_pumps:
+            menu_options.append("remove_heat_pump")
         if self._devices:
             menu_options.append("remove_device")
 
@@ -265,6 +292,126 @@ class SolarAcceleratorHomeOptionsFlow(config_entries.OptionsFlow):
         })
 
         return self.async_show_form(step_id="add_device", data_schema=schema, errors=errors)
+
+    # ── Pompa ciepła ─────────────────────────────────────────────────────────
+    # Dwa sposoby, JEDEN formularz: preset (HeishaMon po prefixie) tylko wypełnia
+    # pola, użytkownik widzi i poprawia każde. Tryb ręczny = te same pola puste.
+
+    def _heishamon_roles(self, prefix: str) -> dict[str, Any]:
+        """Rola → pierwsza istniejąca encja z kandydatów presetu."""
+        roles: dict[str, Any] = {}
+        for role, candidates in HEISHAMON_CANDIDATES.items():
+            for template in candidates:
+                entity_id = template.format(p=prefix)
+                if self.hass.states.get(entity_id) is not None:
+                    roles[role] = entity_id
+                    break
+        return roles
+
+    async def async_step_heat_pump(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Krok 1: nazwa i sposób wypełnienia (HeishaMon po prefixie / ręcznie)."""
+        errors: dict[str, str] = {}
+        current = self._heat_pumps[0] if self._heat_pumps else {}
+
+        if user_input is not None:
+            label = (user_input.get("label") or "").strip()
+            source = user_input.get("source", HEAT_PUMP_SOURCE_MANUAL)
+            prefix = (user_input.get("prefix") or "").strip().lower()
+
+            if not label:
+                errors["label"] = "label_required"
+            if source == HEAT_PUMP_SOURCE_HEISHAMON:
+                if not prefix:
+                    errors["prefix"] = "prefix_required"
+                elif " " in prefix or not prefix.replace("_", "").isalnum():
+                    errors["prefix"] = "invalid_prefix"
+
+            if not errors:
+                self._hp_draft = {
+                    "key": current.get("key") or slugify(label) or "heat_pump",
+                    "label": label,
+                    "source": source,
+                    "prefix": prefix if source == HEAT_PUMP_SOURCE_HEISHAMON else None,
+                }
+                roles = dict(current.get("roles") or {})
+                same_preset = (
+                    current.get("source") == source and (current.get("prefix") or None) == self._hp_draft["prefix"]
+                )
+                if source == HEAT_PUMP_SOURCE_HEISHAMON and not same_preset:
+                    detected = self._heishamon_roles(prefix)
+                    if not detected:
+                        errors["prefix"] = "prefix_not_found"
+                    else:
+                        roles = {**detected, **{k: roles[k] for k in _MEASUREMENT_KEEP if roles.get(k)}}
+                if not errors:
+                    self._hp_roles = roles
+                    return await self.async_step_heat_pump_entities()
+
+        schema = vol.Schema({
+            vol.Required("label", default=current.get("label", "Pompa ciepła")): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.TEXT)
+            ),
+            vol.Required("source", default=current.get("source", HEAT_PUMP_SOURCE_HEISHAMON)): SelectSelector(
+                SelectSelectorConfig(
+                    options=[HEAT_PUMP_SOURCE_HEISHAMON, HEAT_PUMP_SOURCE_MANUAL],
+                    translation_key="heat_pump_source",
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Optional("prefix", default=current.get("prefix") or HEISHAMON_DEFAULT_PREFIX): TextSelector(
+                TextSelectorConfig(type=TextSelectorType.TEXT)
+            ),
+        })
+        return self.async_show_form(step_id="heat_pump", data_schema=schema, errors=errors)
+
+    async def async_step_heat_pump_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Krok 2: encje w sekcjach. Każda opcjonalna — brak = brak tej statystyki."""
+        if user_input is not None:
+            roles: dict[str, Any] = {}
+            for section_values in user_input.values():
+                if not isinstance(section_values, dict):
+                    continue
+                for role, value in section_values.items():
+                    if role in HEAT_PUMP_ROLES and value:
+                        roles[role] = value
+            self._heat_pumps = [{**self._hp_draft, "roles": roles}]
+            return self._save({CONF_HEAT_PUMPS: self._heat_pumps})
+
+        sections: dict[Any, Any] = {}
+        for sec in HEAT_PUMP_SECTIONS:
+            fields: dict[Any, Any] = {}
+            for role, (kind, multi, _unit, role_section) in HEAT_PUMP_ROLES.items():
+                if role_section != sec:
+                    continue
+                current = self._hp_roles.get(role)
+                key = (
+                    vol.Optional(role, description={"suggested_value": current})
+                    if current
+                    else vol.Optional(role)
+                )
+                fields[key] = EntitySelector(
+                    EntitySelectorConfig(domain=_ROLE_DOMAINS.get(kind, _TEXT_DOMAINS), multiple=multi)
+                )
+            sections[vol.Required(sec)] = section(vol.Schema(fields), {"collapsed": sec == "settings"})
+
+        return self.async_show_form(step_id="heat_pump_entities", data_schema=vol.Schema(sections))
+
+    async def async_step_remove_heat_pump(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Usuń pompę ciepła (po usunięciu serwer oznaczy ją jako rozłączoną)."""
+        if user_input is not None:
+            if user_input.get("confirm"):
+                self._heat_pumps = []
+                return self._save({CONF_HEAT_PUMPS: self._heat_pumps})
+            return await self.async_step_init()
+
+        schema = vol.Schema({vol.Required("confirm", default=False): bool})
+        return self.async_show_form(step_id="remove_heat_pump", data_schema=schema)
 
     async def async_step_remove_device(
         self, user_input: dict[str, Any] | None = None

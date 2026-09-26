@@ -12,6 +12,7 @@ from .const import (
     CONF_ENTITY_MAPPING,
     CONF_EV_ENABLED,
     CONF_EV_PREFIX,
+    CONF_HEAT_PUMPS,
     CONF_SERVER_URL,
     DEFAULT_LIVE_INTERVAL,
     DOMAIN,
@@ -32,6 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_EV_PREFIX: entry.options.get(CONF_EV_PREFIX, ""),
         CONF_ENTITY_MAPPING: entry.options.get(CONF_ENTITY_MAPPING, {}),
         CONF_CONTROLLABLE_DEVICES: entry.options.get(CONF_CONTROLLABLE_DEVICES, []),
+        CONF_HEAT_PUMPS: entry.options.get(CONF_HEAT_PUMPS, []),
         # Stan kanału live (EV + sterowalne odbiorniki)
         "live_status": "inactive",
         "live_last_push": None,
@@ -55,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Przeładuj wpis po zapisaniu opcji (EV, sterowalne odbiorniki)."""
+    """Przeładuj wpis po zapisaniu opcji (EV, pompa ciepła, sterowalne odbiorniki)."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
