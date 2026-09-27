@@ -81,3 +81,31 @@ class SolarAcceleratorHomeEntitiesCountSensor(SolarAcceleratorHomeSensorBase):
     @property
     def native_value(self) -> int:
         return self.coordinator_data.get("entities_sent", 0)
+
+
+class SolarAcceleratorHomeHeatPumpEntitiesCountSensor(SolarAcceleratorHomeSensorBase):
+    """Liczba ról pompy ciepła z odczytem przy ostatniej wysyłce.
+
+    Atrybuty pokazują, ile ról skonfigurowano i których odczytu zabrakło —
+    najszybszy sposób, żeby zobaczyć złą encję albo taką, której pompa nie obsługuje.
+    """
+
+    _attr_icon = "mdi:heat-pump-outline"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "heat_pump_entities_sent"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator_data: dict[str, Any]) -> None:
+        super().__init__(hass, entry, coordinator_data, "heat_pump_entities_sent")
+        self._attr_name = "Wysłane encje pompy ciepła"
+
+    @property
+    def native_value(self) -> int:
+        return self.coordinator_data.get("heat_pump_entities_sent", 0)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "roles_configured": self.coordinator_data.get("heat_pump_roles_configured", 0),
+            "roles_missing": self.coordinator_data.get("heat_pump_roles_missing", []),
+        }

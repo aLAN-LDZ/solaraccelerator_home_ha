@@ -1,6 +1,7 @@
 """Klasy encji sensorów Solar Accelerator Home, pogrupowane tematycznie."""
 from .live import (
     SolarAcceleratorHomeEntitiesCountSensor,
+    SolarAcceleratorHomeHeatPumpEntitiesCountSensor,
     SolarAcceleratorHomeLiveIntervalSensor,
     SolarAcceleratorHomeLiveLastPushSensor,
     SolarAcceleratorHomeLiveStatusSensor,
@@ -43,4 +44,5 @@ __all__ = [
     "SolarAcceleratorHomeLiveLastPushSensor",
     "SolarAcceleratorHomeLiveIntervalSensor",
     "SolarAcceleratorHomeEntitiesCountSensor",
+    "SolarAcceleratorHomeHeatPumpEntitiesCountSensor",
 ]

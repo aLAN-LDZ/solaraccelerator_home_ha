@@ -199,8 +199,8 @@ def _build_heat_pumps_payload(hass: HomeAssistant, coordinator_data: dict[str, A
     return out
 
 
-def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """Zbuduj payload live pushu. Zwraca (payload, entities_count)."""
+def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -> tuple[dict[str, Any], int, dict[str, Any]]:
+    """Zbuduj payload live pushu. Zwraca (payload, liczba encji EV, diagnostyka pomp)."""
     payload: dict[str, Any] = {"timestamp": dt_util.utcnow().isoformat(), "prefix": "home"}
     entities_count = 0
 
@@ -221,9 +221,15 @@ def _build_live_payload(hass: HomeAssistant, coordinator_data: dict[str, Any]) -
 
     heat_pumps = _build_heat_pumps_payload(hass, coordinator_data)
     payload["heat_pumps"] = heat_pumps
-    entities_count += sum(1 for hp in heat_pumps for v in hp["state"].values() if v is not None)
+    # Diagnostyka pomp osobno od EV: ile ról ma odczyt i których brakuje (encja
+    # unavailable, zła nazwa, pompa nie obsługuje) — widać to w sensorze w HA.
+    hp_diag = {
+        "sent": sum(1 for hp in heat_pumps for v in hp["state"].values() if v is not None),
+        "configured": sum(len(hp["state"]) for hp in heat_pumps),
+        "missing": sorted(r for hp in heat_pumps for r, v in hp["state"].items() if v is None),
+    }
 
-    return payload, entities_count
+    return payload, entities_count, hp_diag
 
 
 async def async_send_live_data(
@@ -241,7 +247,7 @@ async def async_send_live_data(
     session = async_get_clientsession(hass)
     endpoint = f"{server_url}{API_LIVE_ENDPOINT}"
 
-    payload, entities_count = _build_live_payload(hass, coordinator_data)
+    payload, entities_count, hp_diag = _build_live_payload(hass, coordinator_data)
     # Push zawsze, nawet z pustym payloadem (heartbeat).
 
     try:
@@ -260,6 +266,9 @@ async def async_send_live_data(
                 coordinator_data["live_status"] = "live"
                 coordinator_data["live_last_push"] = dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
                 coordinator_data["entities_sent"] = entities_count
+                coordinator_data["heat_pump_entities_sent"] = hp_diag["sent"]
+                coordinator_data["heat_pump_roles_configured"] = hp_diag["configured"]
+                coordinator_data["heat_pump_roles_missing"] = hp_diag["missing"]
                 if live_interval:
                     coordinator_data["live_interval_seconds"] = live_interval
                 pending_commands = data.get("pending_commands", []) or []

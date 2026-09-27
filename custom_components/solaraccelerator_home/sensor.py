@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import async_fetch_prices, async_fetch_profit
-from .const import DOMAIN
+from .const import CONF_HEAT_PUMPS, DOMAIN
 from .coordinator import async_fetch_metrics_loop, async_send_live_data_loop
 from .sensors import (
     SolarAcceleratorHomeAverageBuyPriceSensor,
@@ -19,6 +19,7 @@ from .sensors import (
     SolarAcceleratorHomeCurrentSellPriceSensor,
     SolarAcceleratorHomeDailyProfitSensor,
     SolarAcceleratorHomeEntitiesCountSensor,
+    SolarAcceleratorHomeHeatPumpEntitiesCountSensor,
     SolarAcceleratorHomeIsCheapSensor,
     SolarAcceleratorHomeIsExpensiveSensor,
     SolarAcceleratorHomeLiveIntervalSensor,
@@ -66,6 +67,11 @@ async def async_setup_entry(
         SolarAcceleratorHomeLiveIntervalSensor(hass, entry, coordinator_data),
         SolarAcceleratorHomeEntitiesCountSensor(hass, entry, coordinator_data),
     ])
+
+    # Diagnostyka pompy ciepła — tylko gdy pompa jest skonfigurowana (zapis opcji
+    # przeładowuje wpis, więc sensor pojawia się/znika razem z pompą).
+    if coordinator_data.get(CONF_HEAT_PUMPS):
+        async_add_entities([SolarAcceleratorHomeHeatPumpEntitiesCountSensor(hass, entry, coordinator_data)])
 
     # Pobierz ceny i zysk od razu na starcie — żeby sensory nie świeciły "unknown"
     # przed pierwszym cyklem pętli metryk.

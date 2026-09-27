@@ -178,6 +178,7 @@
       "battery_value": { "name": "Battery value" },
       "battery_avg_price": { "name": "Battery average price" },
       "entities_sent": { "name": "EV entities sent" },
+      "heat_pump_entities_sent": { "name": "Heat pump entities sent" },
       "live_last_push": { "name": "Last LIVE push" },
       "live_interval": { "name": "LIVE interval" },
       "live_status": {
