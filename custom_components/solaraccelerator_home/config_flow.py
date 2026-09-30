@@ -274,8 +274,9 @@ class SolarAcceleratorHomeOptionsFlow(config_entries.OptionsFlow):
             vol.Required("device_type", default="other"): SelectSelector(
                 SelectSelectorConfig(options=CONTROLLABLE_DEVICE_TYPES, mode=SelectSelectorMode.DROPDOWN)
             ),
+            # Encja startu: przełącznik ALBO przycisk (np. zmywarka ma tylko `button.*_start`).
             vol.Required("switch_entity"): EntitySelector(
-                EntitySelectorConfig(domain=["switch", "input_boolean"])
+                EntitySelectorConfig(domain=["switch", "input_boolean", "button", "input_button"])
             ),
             vol.Optional("power_sensor"): EntitySelector(
                 EntitySelectorConfig(domain=["sensor"])

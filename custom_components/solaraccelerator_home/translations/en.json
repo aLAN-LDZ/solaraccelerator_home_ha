@@ -47,7 +47,7 @@
         "data": {
           "label": "Name",
           "device_type": "Type",
-          "switch_entity": "Switch entity",
+          "switch_entity": "Switch or start button",
           "power_sensor": "Power entity (optional)",
           "energy_sensor": "Energy entity (optional)",
           "status_entity": "Status entity (optional)",

@@ -47,7 +47,7 @@
         "data": {
           "label": "Nazwa",
           "device_type": "Typ",
-          "switch_entity": "Encja przełącznika",
+          "switch_entity": "Przełącznik lub przycisk startu",
           "power_sensor": "Encja mocy (opcjonalnie)",
           "energy_sensor": "Encja energii (opcjonalnie)",
           "status_entity": "Encja statusu (opcjonalnie)",
