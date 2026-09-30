@@ -50,7 +50,8 @@
           "switch_entity": "Przełącznik lub przycisk startu",
           "power_sensor": "Encja mocy (opcjonalnie)",
           "energy_sensor": "Encja energii (opcjonalnie)",
-          "status_entity": "Encja statusu (opcjonalnie)",
+          "status_entity": "Encja gotowości do startu (opcjonalnie)",
+          "running_entity": "Encja stanu pracy, np. running/stopped (opcjonalnie)",
           "nominal_power_w": "Moc nominalna (W, opcjonalnie)"
         }
       },

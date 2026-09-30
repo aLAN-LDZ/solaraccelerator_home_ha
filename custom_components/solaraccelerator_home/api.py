@@ -154,10 +154,14 @@ def _build_controllable_payload(hass: HomeAssistant, coordinator_data: dict[str,
             "power_sensor": dev.get("power_sensor"),
             "energy_sensor": dev.get("energy_sensor"),
             "status_entity": dev.get("status_entity"),
+            "running_entity": dev.get("running_entity"),
             "nominal_power_w": dev.get("nominal_power_w"),
         }
 
-        for field, sensor_key in (("power_w", "power_sensor"), ("energy_kwh", "energy_sensor"), ("status", "status_entity")):
+        for field, sensor_key in (
+            ("power_w", "power_sensor"), ("energy_kwh", "energy_sensor"),
+            ("status", "status_entity"), ("running", "running_entity"),
+        ):
             sensor_id = dev.get(sensor_key)
             if sensor_id and (s := hass.states.get(sensor_id)):
                 entry[field] = s.state

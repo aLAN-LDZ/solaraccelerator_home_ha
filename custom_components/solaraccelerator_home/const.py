@@ -12,7 +12,7 @@ CONF_EV_MODEL = "ev_model"
 
 # Custom sterowalne odbiorniki (przycisk „Konfiguruj" na karcie integracji).
 # Lista słowników: {key, label, device_type, switch_entity, power_sensor,
-# energy_sensor, status_entity, nominal_power_w}. Trzymane w entry.options.
+# energy_sensor, status_entity, running_entity, nominal_power_w}. Trzymane w entry.options.
 CONF_CONTROLLABLE_DEVICES = "controllable_devices"
 
 CONTROLLABLE_DEVICE_TYPES = [

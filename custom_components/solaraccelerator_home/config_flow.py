@@ -263,6 +263,7 @@ class SolarAcceleratorHomeOptionsFlow(config_entries.OptionsFlow):
                     "power_sensor": user_input.get("power_sensor") or None,
                     "energy_sensor": user_input.get("energy_sensor") or None,
                     "status_entity": user_input.get("status_entity") or None,
+                    "running_entity": user_input.get("running_entity") or None,
                     "nominal_power_w": user_input.get("nominal_power_w"),
                 }
                 self._devices = [d for d in self._devices if d.get("key") != key]
@@ -285,6 +286,10 @@ class SolarAcceleratorHomeOptionsFlow(config_entries.OptionsFlow):
                 EntitySelectorConfig(domain=["sensor"])
             ),
             vol.Optional("status_entity"): EntitySelector(
+                EntitySelectorConfig(domain=["sensor", "binary_sensor"])
+            ),
+            # Stan pracy urządzenia (np. pralka: sensor.*_machine_state = running/stopped).
+            vol.Optional("running_entity"): EntitySelector(
                 EntitySelectorConfig(domain=["sensor", "binary_sensor"])
             ),
             vol.Optional("nominal_power_w"): NumberSelector(
